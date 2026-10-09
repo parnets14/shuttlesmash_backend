@@ -19,5 +19,6 @@ router.get("/getevents", EventsController.getevents);
 router.delete("/Deleteevents/:Id", EventsController.Deleteevents);
 router.put("/editevents", upload.any(), EventsController.editevents);
 router.put("/blockunblock", EventsController.blockevent);
+router.put("/resetcategorycount", EventsController.resetCategoryCount);
 
 module.exports = router;

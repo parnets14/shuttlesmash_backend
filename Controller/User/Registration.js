@@ -1,4 +1,5 @@
 const RegistrationModel = require("../../Model/User/Registration");
+const EventsModel = require("../../Model/Admin/Events");
 const nodemailer = require("nodemailer");
 class Registration {
   // post method
@@ -15,6 +16,7 @@ class Registration {
         EventsDate,
         RegisteredDate,
         RegisteredTime,
+        catForms,
       } = req.body;
       const newregistration = new RegistrationModel({
         playerNames,
@@ -27,13 +29,15 @@ class Registration {
         EventsDate,
         RegisteredDate,
         RegisteredTime,
+        catForms,
       });
       const registerData = await newregistration.save();
 
       if (registerData) {
         return res.status(200).json({
           success:
-            "Thank you for successfully completing your registration! A confirmation has been sent to your email, and you’ll receive a payment confirmation email shortly.",
+            "Thank you for successfully completing your registration!",
+          registrationId: registerData._id,
         });
       } else {
         return res.status(200).json({
@@ -145,7 +149,6 @@ class Registration {
     try {
       let getregistration = await RegistrationModel.find()
         .populate("eventsId")
-        .populate("Category.categoryId")
         .sort({ _id: -1 });
       return res.status(200).send({ getregistration: getregistration });
     } catch (error) {
@@ -182,20 +185,42 @@ class Registration {
     try {
       const { userId } = req.body;
 
-      // Find the user by ID and update the status to "Success"
-      const payment = await RegistrationModel.findOneAndUpdate(
-        { _id: userId },
-        { $set: { status: "Success" } },
-        { new: true }
-      );
-
-      if (payment) {
-        return res.status(200).json({ success: "Payment success" });
-      } else {
+      // Find the registration first so we can read its catForms / eventsId
+      const registration = await RegistrationModel.findById(userId);
+      if (!registration) {
         return res.status(400).json({ error: "Payment not successful" });
       }
+
+      // Update status to Success + set PaymentDate
+      registration.status = "Success";
+      registration.PaymentDate = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+      await registration.save();
+
+      // Increment RegisteredCount on the event's embedded categories
+      // Each entry in catForms counts as one registration slot per category
+      if (registration.eventsId && registration.catForms?.length > 0) {
+        const event = await EventsModel.findById(registration.eventsId);
+        if (event) {
+          registration.catForms.forEach((form) => {
+            const entryCount = form.entries?.length || 1;
+            const cat = event.Categories.find(
+              (c) => String(c._id) === String(form.catId)
+            );
+            if (cat) {
+              cat.RegisteredCount = (cat.RegisteredCount || 0) + entryCount;
+            }
+          });
+          await event.save();
+        }
+      }
+
+      return res.status(200).json({ success: "Payment success" });
     } catch (error) {
-      console.error(error); // Log the error for debugging
+      console.error(error);
       return res.status(500).json({ error: "API Error" });
     }
   }

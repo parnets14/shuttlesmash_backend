@@ -40,6 +40,11 @@ const RegistrationSchema = new Schema({
     required: true,
   },
 
+  PaymentDate: {
+    type: String,
+    default: "",
+  },
+
   Category: [
     {
       categoryId: {
@@ -48,6 +53,8 @@ const RegistrationSchema = new Schema({
       },
     },
   ],
+
+  catForms: [],
 });
 
 const RegistrationModel = mongoose.model(

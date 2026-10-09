@@ -97,6 +97,23 @@ class Events {
       if (typeof Categories === "string") Categories = JSON.parse(Categories);
       if (typeof EventInfo === "string") EventInfo = JSON.parse(EventInfo);
 
+      // Preserve existing RegisteredCount and ensure Limit is a Number
+      if (Categories && Array.isArray(Categories)) {
+        const existingEvent = await EventsModal.findById(id);
+        if (existingEvent) {
+          Categories = Categories.map((incomingCat) => {
+            const existing = existingEvent.Categories.find(
+              (ec) => String(ec._id) === String(incomingCat._id)
+            );
+            return {
+              ...incomingCat,
+              Limit: Number(incomingCat.Limit) || 0,
+              RegisteredCount: existing ? (existing.RegisteredCount || 0) : 0,
+            };
+          });
+        }
+      }
+
       let file = req.files?.[0]?.filename;
       let obj = {};
 
@@ -127,6 +144,25 @@ class Events {
     } catch (error) {
       console.log(error);
       return res.status(500).json({ error: "Update failed" });
+    }
+  }
+
+  // PUT — reset RegisteredCount for a specific category in an event
+  async resetCategoryCount(req, res) {
+    try {
+      const { eventId, categoryId } = req.body;
+      const event = await EventsModal.findById(eventId);
+      if (!event) return res.status(404).json({ error: "Event not found" });
+
+      const cat = event.Categories.id(categoryId);
+      if (!cat) return res.status(404).json({ error: "Category not found" });
+
+      cat.RegisteredCount = 0;
+      await event.save();
+      return res.status(200).json({ success: "Count reset to 0" });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({ error: "Reset failed" });
     }
   }
 

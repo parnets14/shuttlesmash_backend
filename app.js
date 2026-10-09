@@ -83,6 +83,7 @@ const ResultHeroBanner  = require("./Routes/Admin/ResultHeroBanner");
 const ContactHeroBanner    = require("./Routes/Admin/ContactHeroBanner");
 const OverviewHeroBanner   = require("./Routes/Admin/OverviewHeroBanner");
 const KeyhighlightHeroBanner = require("./Routes/Admin/KeyhighlightHeroBanner");
+const phonepe = require("./Routes/User/PhonepeRoutes")
 
 app.use("/api/admin", AdminLogin);
 app.use("/api/admin", HomeBanner);
@@ -117,6 +118,7 @@ app.use("/api/admin", ResultHeroBanner);
 app.use("/api/admin", ContactHeroBanner);
 app.use("/api/admin", OverviewHeroBanner);
 app.use("/api/admin", KeyhighlightHeroBanner);
+app.use("/api/phonepe", phonepe);
 
 const PORT = process.env.PORT || 5000;
 
