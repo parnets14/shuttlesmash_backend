@@ -84,6 +84,9 @@ const ContactHeroBanner    = require("./Routes/Admin/ContactHeroBanner");
 const OverviewHeroBanner   = require("./Routes/Admin/OverviewHeroBanner");
 const KeyhighlightHeroBanner = require("./Routes/Admin/KeyhighlightHeroBanner");
 const phonepe = require("./Routes/User/PhonepeRoutes")
+const Ranking      = require("./Routes/Admin/Ranking")
+const RankingGroup = require("./Routes/Admin/RankingGroup")
+const RankingHeroBanner = require("./Routes/Admin/RankingHeroBanner")
 
 app.use("/api/admin", AdminLogin);
 app.use("/api/admin", HomeBanner);
@@ -119,6 +122,9 @@ app.use("/api/admin", ContactHeroBanner);
 app.use("/api/admin", OverviewHeroBanner);
 app.use("/api/admin", KeyhighlightHeroBanner);
 app.use("/api/phonepe", phonepe);
+app.use("/api/admin", Ranking);
+app.use("/api/admin", RankingGroup);
+app.use("/api/admin", RankingHeroBanner);
 
 const PORT = process.env.PORT || 5000;
 
