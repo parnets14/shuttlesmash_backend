@@ -87,6 +87,9 @@ const phonepe = require("./Routes/User/PhonepeRoutes")
 const Ranking      = require("./Routes/Admin/Ranking")
 const RankingGroup = require("./Routes/Admin/RankingGroup")
 const RankingHeroBanner = require("./Routes/Admin/RankingHeroBanner")
+const Podcast             = require("./Routes/Admin/Podcast")
+const PodcastHeroBanner   = require("./Routes/Admin/PodcastHeroBanner")
+const PodcastAbout        = require("./Routes/Admin/PodcastAbout")
 
 app.use("/api/admin", AdminLogin);
 app.use("/api/admin", HomeBanner);
@@ -125,6 +128,9 @@ app.use("/api/phonepe", phonepe);
 app.use("/api/admin", Ranking);
 app.use("/api/admin", RankingGroup);
 app.use("/api/admin", RankingHeroBanner);
+app.use("/api/admin", Podcast);
+app.use("/api/admin", PodcastHeroBanner);
+app.use("/api/admin", PodcastAbout);
 
 const PORT = process.env.PORT || 5000;
 

@@ -41,6 +41,17 @@ let EventsSchema = new Schema(
     Status:         { type: String },
     isBlock:        { type: Boolean, default: false },
 
+    // "individual" | "team"
+    EventType:      { type: String, default: "individual" },
+
+    // Team events: organisation entries (same shape as a category, no name/type)
+    Teams: [{
+      OrganisationName: { type: String },
+      Price:            { type: Number, default: 0 },
+      TotalPlayers:     { type: Number, default: 1 },
+      Limit:            { type: Number, default: 0 },
+    }],
+
     // Embedded categories for this event
     Categories: [CategorySubSchema],
 
@@ -49,6 +60,9 @@ let EventsSchema = new Schema(
 
     // Brochure file for this event
     Brochure: { type: String },
+
+    // Event PDF — the document behind the "Download PDF" button on the tournaments page
+    EventPdf: { type: String },
   },
   { timestamps: true }
 );

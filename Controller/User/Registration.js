@@ -1,6 +1,68 @@
 const RegistrationModel = require("../../Model/User/Registration");
 const EventsModel = require("../../Model/Admin/Events");
 const nodemailer = require("nodemailer");
+
+// ── helpers ────────────────────────────────────────────────
+const normEmail = (v) => String(v || "").trim().toLowerCase();
+const normPhone = (v) => String(v || "").replace(/\D/g, "");
+
+// Flatten catForms → [{ name, email, phone }]
+const flattenPlayers = (catForms) => {
+  if (!Array.isArray(catForms)) return [];
+  const out = [];
+  catForms.forEach((form) => {
+    (form?.entries || []).forEach((entry) => {
+      (entry || []).forEach((p) => {
+        if (p && (p.email || p.phone || p.name)) {
+          out.push({
+            name: String(p.name || "").trim(),
+            email: normEmail(p.email),
+            phone: normPhone(p.phone),
+          });
+        }
+      });
+    });
+  });
+  return out;
+};
+
+// Values that appear more than once inside the same submission
+const findInternalDuplicates = (values) => {
+  const seen = new Map();
+  values.filter(Boolean).forEach((v) => seen.set(v, (seen.get(v) || 0) + 1));
+  return [...seen.entries()].filter(([, n]) => n > 1).map(([v]) => v);
+};
+
+// Every email / phone already used for an event.
+// Reads both the flat arrays and catForms, so registrations created before
+// PlayerEmails / PlayerPhones existed are still covered.
+const getRegisteredContacts = async (eventsId) => {
+  const emails = new Set();
+  const phones = new Set();
+  if (!eventsId) return { emails, phones };
+
+  const rows = await RegistrationModel.find({ eventsId })
+    .select("PlayerEmails PlayerPhones catForms")
+    .lean();
+
+  rows.forEach((row) => {
+    (row.PlayerEmails || []).forEach((e) => {
+      const v = normEmail(e);
+      if (v) emails.add(v);
+    });
+    (row.PlayerPhones || []).forEach((p) => {
+      const v = normPhone(p);
+      if (v) phones.add(v);
+    });
+    flattenPlayers(row.catForms).forEach((p) => {
+      if (p.email) emails.add(p.email);
+      if (p.phone) phones.add(p.phone);
+    });
+  });
+
+  return { emails, phones };
+};
+
 class Registration {
   // post method
   async registration(req, res, next) {
@@ -17,7 +79,49 @@ class Registration {
         RegisteredDate,
         RegisteredTime,
         catForms,
+        OrganisationName,
       } = req.body;
+
+      const players = flattenPlayers(catForms);
+
+      // Fallback for legacy single-player payloads
+      if (players.length === 0) {
+        const email = normEmail(PlayerEmail);
+        const phone = normPhone(PlayerPhoneNo);
+        if (email || phone) players.push({ name: "", email, phone });
+      }
+
+      const emails = players.map((p) => p.email).filter(Boolean);
+      const phones = players.map((p) => p.phone).filter(Boolean);
+
+      // 1) No repeated phone / email inside the same registration
+      const dupEmailsInForm = findInternalDuplicates(emails);
+      const dupPhonesInForm = findInternalDuplicates(phones);
+      if (dupEmailsInForm.length || dupPhonesInForm.length) {
+        return res.status(400).json({
+          error:
+            "Each player must have a unique email and phone number — duplicates found in this registration.",
+          duplicateEmails: dupEmailsInForm,
+          duplicatePhones: dupPhonesInForm,
+        });
+      }
+
+      // 2) No phone / email already registered for this event
+      if (eventsId && (emails.length || phones.length)) {
+        const used = await getRegisteredContacts(eventsId);
+        const clashEmails = emails.filter((e) => used.emails.has(e));
+        const clashPhones = phones.filter((p) => used.phones.has(p));
+
+        if (clashEmails.length || clashPhones.length) {
+          return res.status(409).json({
+            error:
+              "This email or phone number is already registered for this event.",
+            duplicateEmails: clashEmails,
+            duplicatePhones: clashPhones,
+          });
+        }
+      }
+
       const newregistration = new RegistrationModel({
         playerNames,
         PlayerEmail,
@@ -30,6 +134,9 @@ class Registration {
         RegisteredDate,
         RegisteredTime,
         catForms,
+        OrganisationName,
+        PlayerEmails: emails,
+        PlayerPhones: phones,
       });
       const registerData = await newregistration.save();
 
@@ -47,6 +154,31 @@ class Registration {
     } catch (error) {
       console.log(error);
       return res.status(400).json({ msg: "Data Cannot be added" });
+    }
+  }
+
+  // POST /checkplayers — is this email / phone already used for this event?
+  async checkplayers(req, res) {
+    try {
+      const { eventsId, emails = [], phones = [] } = req.body || {};
+      const emailList = [...new Set((emails || []).map(normEmail).filter(Boolean))];
+      const phoneList = [...new Set((phones || []).map(normPhone).filter(Boolean))];
+
+      const used = await getRegisteredContacts(eventsId);
+
+      return res.status(200).json({
+        duplicateEmails: emailList.filter((e) => used.emails.has(e)),
+        duplicatePhones: phoneList.filter((p) => used.phones.has(p)),
+        internalEmails: findInternalDuplicates(
+          (emails || []).map(normEmail).filter(Boolean)
+        ),
+        internalPhones: findInternalDuplicates(
+          (phones || []).map(normPhone).filter(Boolean)
+        ),
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(400).json({ msg: "Could not check players" });
     }
   }
 

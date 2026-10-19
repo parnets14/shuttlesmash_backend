@@ -12,6 +12,7 @@ var storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 router.post("/registration", upload.any(), registrationController.registration);
+router.post("/checkplayers", registrationController.checkplayers);
 router.get("/getregistration", registrationController.getregistration);
 router.delete("/Deleteregistration/:Id", registrationController.Deleteregistration);
 router.put("/makeStatusChangebookings",registrationController.makeStatusChangebookings);

@@ -14,14 +14,18 @@ class Events {
         Status,
         Categories,
         EventInfo,
+        EventType,
+        Teams,
       } = req.body;
 
       // Parse JSON strings if needed
       if (typeof Categories === "string") Categories = JSON.parse(Categories);
       if (typeof EventInfo === "string") EventInfo = JSON.parse(EventInfo);
+      if (typeof Teams === "string") Teams = JSON.parse(Teams);
 
       let EventImage;
       let Brochure;
+      let EventPdf;
       if (req.files) {
         req.files.forEach((item) => {
           if (item.fieldname === "EventImage") {
@@ -29,6 +33,9 @@ class Events {
           }
           if (item.fieldname === "Brochure") {
             Brochure = item.filename;
+          }
+          if (item.fieldname === "EventPdf") {
+            EventPdf = item.filename;
           }
         });
       }
@@ -45,6 +52,9 @@ class Events {
         Categories: Categories || [],
         EventInfo: EventInfo || {},
         Brochure: Brochure || "",
+        EventPdf: EventPdf || "",
+        EventType: EventType || "individual",
+        Teams: Teams || [],
       });
       await newEvent.save();
 
@@ -92,10 +102,13 @@ class Events {
         Status,
         Categories,
         EventInfo,
+        EventType,
+        Teams,
       } = req.body;
 
       if (typeof Categories === "string") Categories = JSON.parse(Categories);
       if (typeof EventInfo === "string") EventInfo = JSON.parse(EventInfo);
+      if (typeof Teams === "string") Teams = JSON.parse(Teams);
 
       // Preserve existing RegisteredCount and ensure Limit is a Number
       if (Categories && Array.isArray(Categories)) {
@@ -122,6 +135,7 @@ class Events {
         req.files.forEach((item) => {
           if (item.fieldname === "EventImage") obj["EventImage"] = item.filename;
           if (item.fieldname === "Brochure") obj["Brochure"] = item.filename;
+          if (item.fieldname === "EventPdf") obj["EventPdf"] = item.filename;
         });
       }
       if (EventName) obj["EventName"] = EventName;
@@ -133,6 +147,8 @@ class Events {
       if (Status) obj["Status"] = Status;
       if (Categories) obj["Categories"] = Categories;
       if (EventInfo !== undefined) obj["EventInfo"] = EventInfo;
+      if (EventType) obj["EventType"] = EventType;
+      if (Teams !== undefined) obj["Teams"] = Teams;
 
       let data = await EventsModal.findByIdAndUpdate(
         { _id: id },

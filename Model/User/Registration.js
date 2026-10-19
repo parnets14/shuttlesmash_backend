@@ -16,6 +16,11 @@ const RegistrationSchema = new Schema({
   },
 
   playerNames: {},
+  // Team registrations: the organisation the team is playing for
+  OrganisationName: {
+    type: String,
+    default: "",
+  },
   PlayerEmail: {
     type: String,
   },
@@ -55,6 +60,10 @@ const RegistrationSchema = new Schema({
   ],
 
   catForms: [],
+
+  // Flat copies used to enforce "one phone / one email per event"
+  PlayerEmails: { type: [String], default: [] },
+  PlayerPhones: { type: [String], default: [] },
 });
 
 const RegistrationModel = mongoose.model(
